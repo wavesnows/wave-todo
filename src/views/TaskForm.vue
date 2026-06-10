@@ -77,18 +77,7 @@
         </div>
 
         <div class="field">
-          <label class="field-label">公众号</label>
-          <div class="radio-group">
-            <button
-              v-for="t in miniTargets"
-              :key="t"
-              :class="['radio-btn', mini.account === t && 'active']"
-              @click="mini.account = t"
-            >{{ t }}</button>
-          </div>
-        </div>
-
-        <div class="field">
+          <label class="field-label">指定条目 <span class="optional">（可选，不填则自动选题）</span></label>
           <label class="field-label">指定条目 <span class="optional">（可选，不填则自动选题）</span></label>
           <input
             v-model="mini.entry"
@@ -145,14 +134,12 @@ function detectContentType() {
 // ── mini 图文 表单状态 ─────────────────────────────────────────
 const mini = ref({
   series: '起源',
-  account: 'once',
   entry: '',
 })
 const miniSeries = [
-  { value: '起源', label: '起源' },
-  { value: '一事一悟', label: '一事一悟' },
+  { value: '起源',   label: '起源',   account: 'once' },
+  { value: '一事一悟', label: '一事一悟', account: 'once' },
 ]
-const miniTargets = ['once', 'snow', 'system']
 
 // ── 提交按钮禁用逻辑 ──────────────────────────────────────────
 const submitDisabled = computed(() => {
@@ -192,7 +179,9 @@ function buildRewriteFile() {
 function buildMiniFile() {
   const { date, time, created } = nowStr()
   const filename = `${date}-${time}.article-mini.md`
-  const lines = ['---', `created: ${created}`, `series: ${mini.value.series}`, `account: ${mini.value.account}`]
+  const seriesCfg = miniSeries.find(s => s.value === mini.value.series)
+  const account = seriesCfg ? seriesCfg.account : 'once'
+  const lines = ['---', `created: ${created}`, `series: ${mini.value.series}`, `account: ${account}`]
   if (mini.value.entry.trim()) lines.push(`entry: ${mini.value.entry.trim()}`)
   lines.push('', '---', '')
   return { filename, content: lines.join('\n') }
@@ -222,7 +211,7 @@ async function handleSubmit() {
         rw.value = { body: '', target: 'auto', autoPublish: false, withCover: true }
         contentType.value = 'create'
       } else {
-        mini.value = { series: '起源', account: 'once', entry: '' }
+        mini.value = { series: '起源', entry: '' }
       }
     }, 3000)
   } catch (e) {
