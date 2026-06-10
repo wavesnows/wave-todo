@@ -31,16 +31,25 @@
             :class="['radio-btn', target === t && 'active']"
             @click="target = t"
           >
-            {{ t }}
+            {{ t === 'auto' ? '自动' : t }}
           </button>
         </div>
       </div>
 
-      <!-- 自动发布选项 -->
-      <label class="checkbox-row">
-        <input type="checkbox" v-model="autoPublish" />
-        <span>自动发布到草稿箱</span>
-      </label>
+      <!-- 选项 -->
+      <div class="field">
+        <label class="field-label">选项</label>
+        <div class="checkbox-list">
+          <label class="checkbox-row">
+            <input type="checkbox" v-model="autoPublish" />
+            <span>自动发布到草稿箱</span>
+          </label>
+          <label class="checkbox-row">
+            <input type="checkbox" v-model="withCover" />
+            <span>生成头图</span>
+          </label>
+        </div>
+      </div>
 
       <!-- 错误 / 成功提示 -->
       <p v-if="error" class="error">{{ error }}</p>
@@ -68,14 +77,15 @@ const router = useRouter()
 const storage = useStorage()
 
 const body = ref('')
-const target = ref('once')
+const target = ref('auto')
 const autoPublish = ref(false)
+const withCover = ref(true)
 const taskType = ref('create')
 const submitting = ref(false)
 const error = ref('')
 const success = ref(false)
 
-const targets = ['once', 'snow', 'system']
+const targets = ['auto', 'once', 'snow', 'system']
 
 function detectType() {
   const firstLine = body.value.split('\n')[0].trim()
@@ -95,15 +105,19 @@ function buildContent() {
   const pad = n => String(n).padStart(2, '0')
   const created = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`
 
-  return `---
-created: ${created}
-target: ${target.value}
-auto_publish: ${autoPublish.value}
-
----
-
-${body.value.trim()}
-`
+  const lines = [
+    '---',
+    `created: ${created}`,
+  ]
+  if (target.value !== 'auto') lines.push(`target: ${target.value}`)
+  lines.push(`auto_publish: ${autoPublish.value}`)
+  lines.push(`no_cover: ${!withCover.value}`)
+  lines.push('')
+  lines.push('---')
+  lines.push('')
+  lines.push(body.value.trim())
+  lines.push('')
+  return lines.join('\n')
 }
 
 async function handleSubmit() {
@@ -127,8 +141,9 @@ async function handleSubmit() {
     setTimeout(() => {
       success.value = false
       body.value = ''
-      target.value = 'once'
+      target.value = 'auto'
       autoPublish.value = false
+      withCover.value = true
       taskType.value = 'create'
     }, 3000)
   } catch (e) {
@@ -263,6 +278,12 @@ async function handleSubmit() {
   background: #0969da;
   color: white;
   border-color: #0969da;
+}
+
+.checkbox-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .checkbox-row {
