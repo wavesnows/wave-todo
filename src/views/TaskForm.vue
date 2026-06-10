@@ -7,49 +7,96 @@
     </header>
 
     <div class="form-body">
-      <!-- 任务类型检测标签 -->
-      <div class="type-badge" :class="taskType">
-        {{ taskType === 'rewrite' ? '改写文章' : '自由创作' }}
+
+      <!-- 任务类型 Tab -->
+      <div class="tabs">
+        <button
+          :class="['tab', activeTab === 'rewrite' && 'active']"
+          @click="activeTab = 'rewrite'"
+        >改写 / 创作</button>
+        <button
+          :class="['tab', activeTab === 'mini' && 'active']"
+          @click="activeTab = 'mini'"
+        >mini 图文</button>
       </div>
 
-      <!-- 正文输入 -->
-      <textarea
-        v-model="body"
-        class="body-input"
-        placeholder="粘贴 URL 或写想法..."
-        rows="6"
-        @input="detectType"
-      />
-
-      <!-- 目标公众号 -->
-      <div class="field">
-        <label class="field-label">目标公众号</label>
-        <div class="radio-group">
-          <button
-            v-for="t in targets"
-            :key="t"
-            :class="['radio-btn', target === t && 'active']"
-            @click="target = t"
-          >
-            {{ t === 'auto' ? '自动' : t }}
-          </button>
+      <!-- ── 改写 / 创作 表单 ── -->
+      <template v-if="activeTab === 'rewrite'">
+        <!-- 正文类型自动检测标签 -->
+        <div class="type-badge" :class="contentType">
+          {{ contentType === 'url' ? '改写文章' : '自由创作' }}
         </div>
-      </div>
 
-      <!-- 选项 -->
-      <div class="field">
-        <label class="field-label">选项</label>
-        <div class="checkbox-list">
-          <label class="checkbox-row">
-            <input type="checkbox" v-model="autoPublish" />
-            <span>自动发布到草稿箱</span>
-          </label>
-          <label class="checkbox-row">
-            <input type="checkbox" v-model="withCover" />
-            <span>生成头图</span>
-          </label>
+        <textarea
+          v-model="rw.body"
+          class="body-input"
+          placeholder="粘贴 URL 或写想法..."
+          rows="6"
+          @input="detectContentType"
+        />
+
+        <div class="field">
+          <label class="field-label">目标公众号</label>
+          <div class="radio-group">
+            <button
+              v-for="t in rwTargets"
+              :key="t"
+              :class="['radio-btn', rw.target === t && 'active']"
+              @click="rw.target = t"
+            >{{ t === 'auto' ? '自动' : t }}</button>
+          </div>
         </div>
-      </div>
+
+        <div class="field">
+          <label class="field-label">选项</label>
+          <div class="checkbox-list">
+            <label class="checkbox-row">
+              <input type="checkbox" v-model="rw.autoPublish" />
+              <span>自动发布到草稿箱</span>
+            </label>
+            <label class="checkbox-row">
+              <input type="checkbox" v-model="rw.withCover" />
+              <span>生成头图</span>
+            </label>
+          </div>
+        </div>
+      </template>
+
+      <!-- ── mini 图文 表单 ── -->
+      <template v-if="activeTab === 'mini'">
+        <div class="field">
+          <label class="field-label">系列</label>
+          <div class="radio-group">
+            <button
+              v-for="s in miniSeries"
+              :key="s.value"
+              :class="['radio-btn', mini.series === s.value && 'active']"
+              @click="mini.series = s.value"
+            >{{ s.label }}</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="field-label">公众号</label>
+          <div class="radio-group">
+            <button
+              v-for="t in miniTargets"
+              :key="t"
+              :class="['radio-btn', mini.account === t && 'active']"
+              @click="mini.account = t"
+            >{{ t }}</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="field-label">指定条目 <span class="optional">（可选，不填则自动选题）</span></label>
+          <input
+            v-model="mini.entry"
+            class="text-input"
+            placeholder="例：伽利略"
+          />
+        </div>
+      </template>
 
       <!-- 错误 / 成功提示 -->
       <p v-if="error" class="error">{{ error }}</p>
@@ -58,17 +105,18 @@
       <!-- 提交按钮 -->
       <button
         class="submit-btn"
-        :disabled="!body.trim() || submitting"
+        :disabled="submitDisabled || submitting"
         @click="handleSubmit"
       >
         {{ submitting ? '提交中...' : '提交任务' }}
       </button>
+
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useStorage } from '../composables/useStorage.js'
 import { useGitHub } from '../composables/useGitHub.js'
@@ -76,50 +124,81 @@ import { useGitHub } from '../composables/useGitHub.js'
 const router = useRouter()
 const storage = useStorage()
 
-const body = ref('')
-const target = ref('auto')
-const autoPublish = ref(false)
-const withCover = ref(true)
-const taskType = ref('create')
+// ── Tab ──────────────────────────────────────────────────────
+const activeTab = ref('rewrite')
+
+// ── 改写/创作 表单状态 ────────────────────────────────────────
+const rw = ref({
+  body: '',
+  target: 'auto',
+  autoPublish: false,
+  withCover: true,
+})
+const contentType = ref('create')
+const rwTargets = ['auto', 'once', 'snow', 'system']
+
+function detectContentType() {
+  const firstLine = rw.value.body.split('\n')[0].trim()
+  contentType.value = /^https?:\/\//.test(firstLine) ? 'url' : 'create'
+}
+
+// ── mini 图文 表单状态 ─────────────────────────────────────────
+const mini = ref({
+  series: '起源',
+  account: 'once',
+  entry: '',
+})
+const miniSeries = [
+  { value: '起源', label: '起源' },
+  { value: '一事一悟', label: '一事一悟' },
+]
+const miniTargets = ['once', 'snow', 'system']
+
+// ── 提交按钮禁用逻辑 ──────────────────────────────────────────
+const submitDisabled = computed(() => {
+  if (activeTab.value === 'rewrite') return !rw.value.body.trim()
+  if (activeTab.value === 'mini') return !mini.value.series
+  return true
+})
+
+// ── 公共工具 ──────────────────────────────────────────────────
 const submitting = ref(false)
 const error = ref('')
 const success = ref(false)
 
-const targets = ['auto', 'once', 'snow', 'system']
-
-function detectType() {
-  const firstLine = body.value.split('\n')[0].trim()
-  taskType.value = /^https?:\/\//.test(firstLine) ? 'rewrite' : 'create'
-}
-
-function buildFilename() {
+function nowStr() {
   const now = new Date()
   const pad = n => String(n).padStart(2, '0')
-  const date = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}`
-  const time = `${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`
-  return `${date}-${time}.article-rewrite.md`
+  return {
+    date: `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}`,
+    time: `${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`,
+    created: `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`,
+  }
 }
 
-function buildContent() {
-  const now = new Date()
-  const pad = n => String(n).padStart(2, '0')
-  const created = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}`
-
-  const lines = [
-    '---',
-    `created: ${created}`,
-  ]
-  if (target.value !== 'auto') lines.push(`target: ${target.value}`)
-  lines.push(`auto_publish: ${autoPublish.value}`)
-  lines.push(`no_cover: ${!withCover.value}`)
-  lines.push('')
-  lines.push('---')
-  lines.push('')
-  lines.push(body.value.trim())
-  lines.push('')
-  return lines.join('\n')
+// ── 改写/创作：生成文件 ───────────────────────────────────────
+function buildRewriteFile() {
+  const { date, time, created } = nowStr()
+  const filename = `${date}-${time}.article-rewrite.md`
+  const lines = ['---', `created: ${created}`]
+  if (rw.value.target !== 'auto') lines.push(`target: ${rw.value.target}`)
+  lines.push(`auto_publish: ${rw.value.autoPublish}`)
+  lines.push(`no_cover: ${!rw.value.withCover}`)
+  lines.push('', '---', '', rw.value.body.trim(), '')
+  return { filename, content: lines.join('\n') }
 }
 
+// ── mini 图文：生成文件 ───────────────────────────────────────
+function buildMiniFile() {
+  const { date, time, created } = nowStr()
+  const filename = `${date}-${time}.article-mini.md`
+  const lines = ['---', `created: ${created}`, `series: ${mini.value.series}`, `account: ${mini.value.account}`]
+  if (mini.value.entry.trim()) lines.push(`entry: ${mini.value.entry.trim()}`)
+  lines.push('', '---', '')
+  return { filename, content: lines.join('\n') }
+}
+
+// ── 提交 ──────────────────────────────────────────────────────
 async function handleSubmit() {
   error.value = ''
   success.value = false
@@ -130,21 +209,21 @@ async function handleSubmit() {
 
   try {
     const gh = useGitHub(token)
-    const filename = buildFilename()
-    const content = buildContent()
-    const path = `pending/${filename}`
-    const message = `task: ${filename}`
+    const { filename, content } = activeTab.value === 'mini'
+      ? buildMiniFile()
+      : buildRewriteFile()
 
-    await gh.putFile(repo.owner, repo.repo, path, content, message)
+    await gh.putFile(repo.owner, repo.repo, `pending/${filename}`, content, `task: ${filename}`)
 
     success.value = true
     setTimeout(() => {
       success.value = false
-      body.value = ''
-      target.value = 'auto'
-      autoPublish.value = false
-      withCover.value = true
-      taskType.value = 'create'
+      if (activeTab.value === 'rewrite') {
+        rw.value = { body: '', target: 'auto', autoPublish: false, withCover: true }
+        contentType.value = 'create'
+      } else {
+        mini.value = { series: '起源', account: 'once', entry: '' }
+      }
     }, 3000)
   } catch (e) {
     if (e.message === 'UNAUTHORIZED') {
@@ -152,12 +231,9 @@ async function handleSubmit() {
       router.push('/setup')
     } else if (e.message.startsWith('RATE_LIMIT:')) {
       const reset = parseInt(e.message.split(':')[1])
-      if (reset) {
-        const mins = Math.ceil((reset * 1000 - Date.now()) / 60000)
-        error.value = `GitHub API 限流，约 ${mins} 分钟后恢复`
-      } else {
-        error.value = 'GitHub API 限流，请稍后重试'
-      }
+      error.value = reset
+        ? `GitHub API 限流，约 ${Math.ceil((reset * 1000 - Date.now()) / 60000)} 分钟后恢复`
+        : 'GitHub API 限流，请稍后重试'
     } else {
       error.value = `提交失败：${e.message}`
     }
@@ -184,10 +260,7 @@ async function handleSubmit() {
   border-bottom: 1px solid #e8e8e8;
 }
 
-.header h1 {
-  font-size: 20px;
-  font-weight: 700;
-}
+.header h1 { font-size: 20px; font-weight: 700; }
 
 .icon-btn {
   background: none;
@@ -197,7 +270,6 @@ async function handleSubmit() {
   color: #666;
   border-radius: 6px;
 }
-
 .icon-btn:hover { background: #f0f0f0; }
 
 .form-body {
@@ -210,6 +282,30 @@ async function handleSubmit() {
   width: 100%;
 }
 
+/* ── Tabs ── */
+.tabs {
+  display: flex;
+  border: 1px solid #d0d7de;
+  border-radius: 8px;
+  overflow: hidden;
+}
+.tab {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  background: #f6f8fa;
+  font-size: 14px;
+  font-weight: 500;
+  color: #666;
+  cursor: pointer;
+}
+.tab.active {
+  background: white;
+  color: #0969da;
+  font-weight: 600;
+}
+
+/* ── 改写 type badge ── */
 .type-badge {
   display: inline-block;
   padding: 3px 10px;
@@ -218,17 +314,10 @@ async function handleSubmit() {
   font-weight: 500;
   align-self: flex-start;
 }
+.type-badge.url { background: #ddf4ff; color: #0550ae; }
+.type-badge.create { background: #dafbe1; color: #116329; }
 
-.type-badge.rewrite {
-  background: #ddf4ff;
-  color: #0550ae;
-}
-
-.type-badge.create {
-  background: #dafbe1;
-  color: #116329;
-}
-
+/* ── 输入框 ── */
 .body-input {
   width: 100%;
   padding: 12px;
@@ -241,29 +330,31 @@ async function handleSubmit() {
   font-family: inherit;
   background: white;
 }
-
 .body-input:focus {
   border-color: #0969da;
   box-shadow: 0 0 0 3px rgba(9,105,218,0.1);
 }
 
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+.text-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d0d7de;
+  border-radius: 8px;
+  font-size: 15px;
+  outline: none;
+  background: white;
+}
+.text-input:focus {
+  border-color: #0969da;
+  box-shadow: 0 0 0 3px rgba(9,105,218,0.1);
 }
 
-.field-label {
-  font-size: 14px;
-  font-weight: 600;
-  color: #444;
-}
+/* ── Fields ── */
+.field { display: flex; flex-direction: column; gap: 8px; }
+.field-label { font-size: 14px; font-weight: 600; color: #444; }
+.optional { font-size: 12px; font-weight: 400; color: #888; }
 
-.radio-group {
-  display: flex;
-  gap: 8px;
-}
-
+.radio-group { display: flex; gap: 8px; flex-wrap: wrap; }
 .radio-btn {
   padding: 8px 16px;
   border: 1px solid #d0d7de;
@@ -273,19 +364,13 @@ async function handleSubmit() {
   color: #444;
   flex: 1;
 }
-
 .radio-btn.active {
   background: #0969da;
   color: white;
   border-color: #0969da;
 }
 
-.checkbox-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
+.checkbox-list { display: flex; flex-direction: column; gap: 8px; }
 .checkbox-row {
   display: flex;
   align-items: center;
@@ -294,12 +379,9 @@ async function handleSubmit() {
   color: #444;
   cursor: pointer;
 }
+.checkbox-row input { width: 16px; height: 16px; }
 
-.checkbox-row input {
-  width: 16px;
-  height: 16px;
-}
-
+/* ── 状态 & 提交 ── */
 .error { color: #d1242f; font-size: 14px; }
 .success { color: #1a7f37; font-size: 14px; font-weight: 500; }
 
@@ -314,6 +396,5 @@ async function handleSubmit() {
   font-weight: 600;
   margin-top: 4px;
 }
-
 .submit-btn:disabled { opacity: 0.5; cursor: default; }
 </style>
