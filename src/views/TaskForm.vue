@@ -18,11 +18,14 @@
           :class="['tab', activeTab === 'mini' && 'active']"
           @click="activeTab = 'mini'"
         >mini 图文</button>
+        <button
+          :class="['tab', activeTab === 'publish' && 'active']"
+          @click="activeTab = 'publish'"
+        >发布文章</button>
       </div>
 
       <!-- ── 改写 / 创作 表单 ── -->
       <template v-if="activeTab === 'rewrite'">
-        <!-- 正文类型自动检测标签 -->
         <div class="type-badge" :class="contentType">
           {{ contentType === 'url' ? '改写文章' : '自由创作' }}
         </div>
@@ -77,12 +80,67 @@
         </div>
 
         <div class="field">
-          <label class="field-label">指定条目 <span class="optional">（可选，不填则自动选题）</span></label>
-          <label class="field-label">指定条目 <span class="optional">（可选，不填则自动选题）</span></label>
+          <label class="field-label">
+            指定条目
+            <span class="optional">（可选，不填则自动选题）</span>
+          </label>
           <input
             v-model="mini.entry"
             class="text-input"
             placeholder="例：伽利略"
+          />
+        </div>
+      </template>
+
+      <!-- ── 发布文章 表单 ── -->
+      <template v-if="activeTab === 'publish'">
+        <div class="field">
+          <label class="field-label">公众号</label>
+          <div class="radio-group">
+            <button
+              v-for="t in pubTargets"
+              :key="t"
+              :class="['radio-btn', pub.target === t && 'active']"
+              @click="pub.target = t"
+            >{{ t }}</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="field-label">文章类型</label>
+          <div class="radio-group">
+            <button
+              :class="['radio-btn', pub.articleType === 'mini' && 'active']"
+              @click="pub.articleType = 'mini'"
+            >mini 图文</button>
+            <button
+              :class="['radio-btn', pub.articleType === 'long' && 'active']"
+              @click="pub.articleType = 'long'"
+            >长文</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="field-label">
+            系列
+            <span class="optional">（可选，不填则随机）</span>
+          </label>
+          <input
+            v-model="pub.series"
+            class="text-input"
+            placeholder="例：成长的箴言"
+          />
+        </div>
+
+        <div class="field">
+          <label class="field-label">
+            指定文件路径
+            <span class="optional">（可选，不填则随机选一篇）</span>
+          </label>
+          <input
+            v-model="pub.source"
+            class="text-input"
+            placeholder="~/wavesnow/article-drafts/mini/once/..."
           />
         </div>
       </template>
@@ -117,12 +175,7 @@ const storage = useStorage()
 const activeTab = ref('rewrite')
 
 // ── 改写/创作 表单状态 ────────────────────────────────────────
-const rw = ref({
-  body: '',
-  target: 'auto',
-  autoPublish: false,
-  withCover: true,
-})
+const rw = ref({ body: '', target: 'auto', autoPublish: false, withCover: true })
 const contentType = ref('create')
 const rwTargets = ['auto', 'once', 'snow', 'system']
 
@@ -132,19 +185,21 @@ function detectContentType() {
 }
 
 // ── mini 图文 表单状态 ─────────────────────────────────────────
-const mini = ref({
-  series: '起源',
-  entry: '',
-})
+const mini = ref({ series: '起源', entry: '' })
 const miniSeries = [
   { value: '起源',   label: '起源',   account: 'once' },
   { value: '一事一悟', label: '一事一悟', account: 'once' },
 ]
 
+// ── 发布文章 表单状态 ──────────────────────────────────────────
+const pub = ref({ target: 'once', articleType: 'mini', series: '', source: '' })
+const pubTargets = ['once', 'snow', 'system']
+
 // ── 提交按钮禁用逻辑 ──────────────────────────────────────────
 const submitDisabled = computed(() => {
   if (activeTab.value === 'rewrite') return !rw.value.body.trim()
-  if (activeTab.value === 'mini') return !mini.value.series
+  if (activeTab.value === 'mini')    return !mini.value.series
+  if (activeTab.value === 'publish') return !pub.value.target
   return true
 })
 
@@ -187,6 +242,22 @@ function buildMiniFile() {
   return { filename, content: lines.join('\n') }
 }
 
+// ── 发布文章：生成文件 ────────────────────────────────────────
+function buildPublishFile() {
+  const { date, time, created } = nowStr()
+  const filename = `${date}-${time}.article-publish.md`
+  const lines = [
+    '---',
+    `created: ${created}`,
+    `target: ${pub.value.target}`,
+    `article_type: ${pub.value.articleType}`,
+  ]
+  if (pub.value.series.trim())  lines.push(`series: ${pub.value.series.trim()}`)
+  if (pub.value.source.trim())  lines.push(`source: ${pub.value.source.trim()}`)
+  lines.push('', '---', '')
+  return { filename, content: lines.join('\n') }
+}
+
 // ── 提交 ──────────────────────────────────────────────────────
 async function handleSubmit() {
   error.value = ''
@@ -198,9 +269,10 @@ async function handleSubmit() {
 
   try {
     const gh = useGitHub(token)
-    const { filename, content } = activeTab.value === 'mini'
-      ? buildMiniFile()
-      : buildRewriteFile()
+    const { filename, content } =
+      activeTab.value === 'mini'    ? buildMiniFile() :
+      activeTab.value === 'publish' ? buildPublishFile() :
+      buildRewriteFile()
 
     await gh.putFile(repo.owner, repo.repo, `pending/${filename}`, content, `task: ${filename}`)
 
@@ -210,8 +282,10 @@ async function handleSubmit() {
       if (activeTab.value === 'rewrite') {
         rw.value = { body: '', target: 'auto', autoPublish: false, withCover: true }
         contentType.value = 'create'
-      } else {
+      } else if (activeTab.value === 'mini') {
         mini.value = { series: '起源', entry: '' }
+      } else if (activeTab.value === 'publish') {
+        pub.value = { target: 'once', articleType: 'mini', series: '', source: '' }
       }
     }, 3000)
   } catch (e) {
@@ -248,7 +322,6 @@ async function handleSubmit() {
   background: white;
   border-bottom: 1px solid #e8e8e8;
 }
-
 .header h1 { font-size: 20px; font-weight: 700; }
 
 .icon-btn {
@@ -280,10 +353,10 @@ async function handleSubmit() {
 }
 .tab {
   flex: 1;
-  padding: 10px;
+  padding: 10px 6px;
   border: none;
   background: #f6f8fa;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   color: #666;
   cursor: pointer;
@@ -294,7 +367,7 @@ async function handleSubmit() {
   font-weight: 600;
 }
 
-/* ── 改写 type badge ── */
+/* ── type badge ── */
 .type-badge {
   display: inline-block;
   padding: 3px 10px;
@@ -303,7 +376,7 @@ async function handleSubmit() {
   font-weight: 500;
   align-self: flex-start;
 }
-.type-badge.url { background: #ddf4ff; color: #0550ae; }
+.type-badge.url    { background: #ddf4ff; color: #0550ae; }
 .type-badge.create { background: #dafbe1; color: #116329; }
 
 /* ── 输入框 ── */
@@ -345,7 +418,7 @@ async function handleSubmit() {
 
 .radio-group { display: flex; gap: 8px; flex-wrap: wrap; }
 .radio-btn {
-  padding: 8px 16px;
+  padding: 8px 14px;
   border: 1px solid #d0d7de;
   border-radius: 8px;
   background: white;
@@ -371,7 +444,7 @@ async function handleSubmit() {
 .checkbox-row input { width: 16px; height: 16px; }
 
 /* ── 状态 & 提交 ── */
-.error { color: #d1242f; font-size: 14px; }
+.error  { color: #d1242f; font-size: 14px; }
 .success { color: #1a7f37; font-size: 14px; font-weight: 500; }
 
 .submit-btn {
