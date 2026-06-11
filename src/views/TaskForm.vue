@@ -224,7 +224,7 @@ function buildRewriteFile() {
   const filename = `${date}-${time}.article-rewrite.md`
   const lines = ['---', `created: ${created}`]
   if (rw.value.target !== 'auto') lines.push(`target: ${rw.value.target}`)
-  lines.push(`auto_publish: ${rw.value.autoPublish}`)
+  lines.push(`no_publish: ${!rw.value.autoPublish}`)
   lines.push(`no_cover: ${!rw.value.withCover}`)
   lines.push('', '---', '', rw.value.body.trim(), '')
   return { filename, content: lines.join('\n') }
