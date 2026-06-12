@@ -8,7 +8,22 @@ const routes = [
   },
   {
     path: '/',
-    component: () => import('../views/TaskForm.vue'),
+    component: () => import('../views/Home.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/writing',
+    component: () => import('../views/WritingForm.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/publish',
+    component: () => import('../views/PublishForm.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/adhoc',
+    component: () => import('../views/AdhocForm.vue'),
     meta: { requiresAuth: true },
   },
 ]
