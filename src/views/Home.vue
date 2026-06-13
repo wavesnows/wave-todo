@@ -35,7 +35,7 @@
     </div>
 
     <div class="footer">
-      <a href="http://git.wavesnows.com/mnote/" target="_blank">📖 打开 mnote</a>
+      <a href="https://zlpx96.github.io/mnote/" target="_blank">📖 打开 mnote</a>
     </div>
   </div>
 </template>
