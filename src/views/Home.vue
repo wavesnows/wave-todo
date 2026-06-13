@@ -33,6 +33,10 @@
         <div class="card-arrow">›</div>
       </div>
     </div>
+
+    <div class="footer">
+      <a href="http://git.wavesnows.com/mnote/" target="_blank">📖 打开 mnote</a>
+    </div>
   </div>
 </template>
 
@@ -99,4 +103,14 @@ const router = useRouter()
 .card-desc  { font-size: 13px; color: #888; margin-top: 2px; }
 
 .card-arrow { font-size: 20px; color: #ccc; font-weight: 300; }
+
+.footer {
+  text-align: center;
+  padding: 24px 16px;
+  color: #888;
+}
+.footer a {
+  font-size: 14px;
+  color: #0969da;
+}
 </style>
