@@ -8,7 +8,7 @@
 
     <div class="form-body">
       <div class="field">
-        <label class="field-label">公众号</label>
+        <label class="field-label">平台</label>
         <div class="radio-group">
           <button v-for="t in pubTargets" :key="t"
             :class="['radio-btn', pub.target===t&&'active']"
@@ -16,7 +16,7 @@
         </div>
       </div>
 
-      <div class="field">
+      <div v-if="pub.target !== 'toutiao'" class="field">
         <label class="field-label">文章类型</label>
         <div class="radio-group">
           <button :class="['radio-btn', pub.articleType==='mini'&&'active']" @click="pub.articleType='mini'">mini 图文</button>
@@ -54,7 +54,7 @@ const router = useRouter()
 const storage = useStorage()
 
 const pub = ref({ target: 'once', articleType: 'mini', series: '', source: '' })
-const pubTargets = ['once', 'snow', 'system']
+const pubTargets = ['once', 'snow', 'system', 'toutiao']
 const submitting = ref(false)
 const error = ref('')
 const success = ref(false)
@@ -71,8 +71,16 @@ function nowStr() {
 
 function buildFile() {
   const { date, time, created } = nowStr()
-  const filename = `${date}-${time}.article-publish.md`
-  const lines = ['---', `created: ${created}`, `target: ${pub.value.target}`, `article_type: ${pub.value.articleType}`]
+  const isToutiao = pub.value.target === 'toutiao'
+  const taskType = isToutiao ? 'article-toutiao-publish' : 'article-publish'
+  const filename = `${date}-${time}.${taskType}.md`
+  const lines = ['---', `created: ${created}`]
+  if (!isToutiao) {
+    lines.push(`target: ${pub.value.target}`)
+    lines.push(`article_type: ${pub.value.articleType}`)
+  } else {
+    lines.push(`article_type: long`)
+  }
   if (pub.value.series.trim())  lines.push(`series: ${pub.value.series.trim()}`)
   if (pub.value.source.trim())  lines.push(`source: ${pub.value.source.trim()}`)
   lines.push('', '---', '')
