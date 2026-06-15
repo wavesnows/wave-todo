@@ -42,7 +42,7 @@
             <input v-model="materialTitle" class="text-input" placeholder="例：孙膑" />
           </div>
         </template>
-        <div class="field">
+        <div v-if="contentType !== 'material'" class="field">
           <label class="field-label">目标公众号</label>
           <div class="radio-group">
             <button v-for="t in rwTargets" :key="t"
