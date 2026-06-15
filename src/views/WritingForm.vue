@@ -17,10 +17,33 @@
 
       <!-- 改写/创作 -->
       <template v-if="activeTab==='rewrite'">
-        <div class="type-badge" :class="contentType">
-          {{ contentType==='url' ? '改写文章' : '自由创作' }}
+        <div class="badge-row">
+          <div :class="['type-badge', contentType==='url' ? 'url' : 'create', contentType==='material' ? '' : 'clickable']"
+               @click="contentType !== 'material' && toggleContentType()">
+            {{ contentType==='url' ? '改写文章' : contentType==='create' ? '自由创作' : '' }}
+          </div>
+          <div :class="['type-badge', 'material', contentType==='material' ? 'active' : '']"
+               @click="contentType = contentType==='material' ? 'create' : 'material'">
+            素材创作
+          </div>
         </div>
-        <textarea v-model="rw.body" class="body-input" placeholder="粘贴 URL 或写想法..." rows="6" @input="detectContentType"/>
+        <textarea v-if="contentType !== 'material'" v-model="rw.body" class="body-input" placeholder="粘贴 URL 或写想法..." rows="6" @input="detectContentType"/>
+
+        <!-- 素材创作：选系列 -->
+        <template v-if="contentType === 'material'">
+          <div class="field">
+            <label class="field-label">系列 <span class="optional">（服务端本地素材库）</span></label>
+            <select v-model="materialLib" class="text-input">
+              <option value="once_hist">历史故事（once）</option>
+              <option value="once_qiyuan">起源系列（once）</option>
+              <option value="once_yishiyiwu">一事一悟（once）</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label">指定标题 <span class="optional">（可选，不填则自动选题）</span></label>
+            <input v-model="materialTitle" class="text-input" placeholder="例：孙膑" />
+          </div>
+        </template>
         <div class="field">
           <label class="field-label">目标公众号</label>
           <div class="radio-group">
@@ -110,7 +133,15 @@ const success = ref(false)
 
 // ── 改写/创作 ──────────────────────────────────────────────
 const rw = ref({ body: '', target: 'auto', autoPublish: false, withCover: true })
-const contentType = ref('create')
+const contentType = ref('create')  // 'url' | 'create' | 'material'
+const materialLib = ref('once_hist')
+const materialTitle = ref('')
+
+// 在 url/create 之间切换（点击 badge 时）
+function toggleContentType() {
+  if (contentType.value === 'url') contentType.value = 'create'
+  else if (contentType.value === 'create') contentType.value = 'url'
+}
 const rwTargets = ['auto', 'once', 'snow', 'system']
 
 function detectContentType() {
@@ -130,7 +161,10 @@ const tt = ref({ body: '', days: 7 })
 
 // ── 提交禁用 ─────────────────────────────────────────────────
 const submitDisabled = computed(() => {
-  if (activeTab.value === 'rewrite') return !rw.value.body.trim()
+  if (activeTab.value === 'rewrite') {
+    if (contentType.value === 'material') return !materialLib.value
+    return !rw.value.body.trim()
+  }
   if (activeTab.value === 'mini')    return !mini.value.series
   if (activeTab.value === 'toutiao') return false
   return true
@@ -152,6 +186,24 @@ function buildFile() {
   const { date, time, created } = nowStr()
 
   if (activeTab.value === 'rewrite') {
+    // 素材创作：生成 article-long 任务
+    if (contentType.value === 'material') {
+      const filename = `${date}-${time}.article-long.md`
+      const lines = ['---', `created: ${created}`]
+      // source_lib 对应 config/series/*.yaml，target 从系列名推断
+      const libTargetMap = {
+        'once_hist': 'once', 'once_qiyuan': 'once', 'once_yishiyiwu': 'once',
+      }
+      const libTarget = libTargetMap[materialLib.value] || 'once'
+      lines.push(`target: ${libTarget}`)
+      lines.push(`source_lib: ${materialLib.value}`)
+      if (materialTitle.value.trim()) lines.push(`title: ${materialTitle.value.trim()}`)
+      lines.push(`no_publish: ${!rw.value.autoPublish}`)
+      lines.push(`no_cover: ${!rw.value.withCover}`)
+      lines.push('', '---', '')
+      return { filename, content: lines.join('\n') }
+    }
+    // 普通改写/创作
     const filename = `${date}-${time}.article-rewrite.md`
     const lines = ['---', `created: ${created}`]
     if (rw.value.target !== 'auto') lines.push(`target: ${rw.value.target}`)
@@ -208,6 +260,7 @@ async function handleSubmit() {
       if (activeTab.value === 'rewrite') {
         rw.value = { body: '', target: 'auto', autoPublish: false, withCover: true }
         contentType.value = 'create'
+        materialTitle.value = ''
       } else if (activeTab.value === 'mini') {
         mini.value = { series: '起源', entry: '' }
       } else if (activeTab.value === 'toutiao') {
@@ -238,9 +291,13 @@ async function handleSubmit() {
 .tabs { display: flex; border: 1px solid #d0d7de; border-radius: 8px; overflow: hidden; }
 .tab { flex: 1; padding: 9px 4px; border: none; background: #f6f8fa; font-size: 13px; font-weight: 500; color: #666; cursor: pointer; }
 .tab.active { background: white; color: #0969da; font-weight: 600; }
-.type-badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 13px; font-weight: 500; align-self: flex-start; }
+.badge-row { display: flex; gap: 6px; align-items: center; }
+.type-badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 13px; font-weight: 500; }
+.type-badge.clickable { cursor: pointer; }
 .type-badge.url    { background: #ddf4ff; color: #0550ae; }
 .type-badge.create { background: #dafbe1; color: #116329; }
+.type-badge.material { background: #f0f0f0; color: #888; cursor: pointer; }
+.type-badge.material.active { background: #fff3cd; color: #856404; }
 .body-input { width: 100%; padding: 12px; border: 1px solid #d0d7de; border-radius: 8px; font-size: 15px; line-height: 1.6; resize: vertical; outline: none; font-family: inherit; background: white; }
 .body-input:focus { border-color: #0969da; box-shadow: 0 0 0 3px rgba(9,105,218,0.1); }
 .text-input { width: 100%; padding: 10px 12px; border: 1px solid #d0d7de; border-radius: 8px; font-size: 15px; outline: none; background: white; }
