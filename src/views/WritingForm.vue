@@ -35,8 +35,6 @@
             <label class="field-label">系列 <span class="optional">（服务端本地素材库）</span></label>
             <select v-model="materialLib" class="text-input">
               <option value="once_hist">历史故事（once）</option>
-              <option value="once_qiyuan">起源系列（once）</option>
-              <option value="once_yishiyiwu">一事一悟（once）</option>
             </select>
           </div>
           <div class="field">
@@ -192,7 +190,7 @@ function buildFile() {
       const lines = ['---', `created: ${created}`]
       // source_lib 对应 config/series/*.yaml，target 从系列名推断
       const libTargetMap = {
-        'once_hist': 'once', 'once_qiyuan': 'once', 'once_yishiyiwu': 'once',
+        'once_hist': 'once',
       }
       const libTarget = libTargetMap[materialLib.value] || 'once'
       lines.push(`target: ${libTarget}`)
