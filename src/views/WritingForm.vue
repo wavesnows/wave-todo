@@ -18,11 +18,11 @@
       <!-- 改写/创作 -->
       <template v-if="activeTab==='rewrite'">
         <div class="badge-row">
-          <div :class="['type-badge', contentType==='url' ? 'url' : 'create', contentType==='material' ? '' : 'clickable']"
-               @click="contentType !== 'material' && toggleContentType()">
-            {{ contentType==='url' ? '改写文章' : contentType==='create' ? '自由创作' : '' }}
+          <div :class="['type-badge', contentType==='url' ? 'url' : 'create', 'clickable', contentType!=='material' ? 'active-badge' : '']"
+               @click="contentType === 'material' ? contentType = 'create' : toggleContentType()">
+            {{ contentType==='url' ? '改写文章' : '自由创作' }}
           </div>
-          <div :class="['type-badge', 'material', contentType==='material' ? 'active' : '']"
+          <div :class="['type-badge', 'material', contentType==='material' ? 'active' : '', 'clickable']"
                @click="contentType = contentType==='material' ? 'create' : 'material'">
             素材创作
           </div>
@@ -292,8 +292,10 @@ async function handleSubmit() {
 .badge-row { display: flex; gap: 6px; align-items: center; }
 .type-badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 13px; font-weight: 500; }
 .type-badge.clickable { cursor: pointer; }
-.type-badge.url    { background: #ddf4ff; color: #0550ae; }
-.type-badge.create { background: #dafbe1; color: #116329; }
+.type-badge.url    { background: #f0f0f0; color: #888; }
+.type-badge.create { background: #f0f0f0; color: #888; }
+.type-badge.url.active-badge    { background: #ddf4ff; color: #0550ae; }
+.type-badge.create.active-badge { background: #dafbe1; color: #116329; }
 .type-badge.material { background: #f0f0f0; color: #888; cursor: pointer; }
 .type-badge.material.active { background: #fff3cd; color: #856404; }
 .body-input { width: 100%; padding: 12px; border: 1px solid #d0d7de; border-radius: 8px; font-size: 15px; line-height: 1.6; resize: vertical; outline: none; font-family: inherit; background: white; }
