@@ -31,7 +31,7 @@
 
       <div class="field">
         <label class="field-label">指定文件路径 <span class="optional">（可选，不填则随机选一篇）</span></label>
-        <input v-model="pub.source" class="text-input" placeholder="~/wavesnow/article-drafts/mini/once/..."/>
+        <input v-model="pub.source" class="text-input" placeholder="起源/伽利略 或 ~/完整路径"/>
       </div>
 
       <p v-if="error" class="error">{{ error }}</p>
@@ -82,7 +82,15 @@ function buildFile() {
     lines.push(`article_type: long`)
   }
   if (pub.value.series.trim())  lines.push(`series: ${pub.value.series.trim()}`)
-  if (pub.value.source.trim())  lines.push(`source: ${pub.value.source.trim()}`)
+  if (pub.value.source.trim()) {
+    const src = pub.value.source.trim()
+    // 全路径直接用，否则拼接 {articleType}/{target}/ 前缀
+    const effectiveType = isToutiao ? 'long' : pub.value.articleType
+    const fullSrc = (src.startsWith('/') || src.startsWith('~'))
+      ? src
+      : `~/wavesnow/article-drafts/${effectiveType}/${pub.value.target}/${src}`
+    lines.push(`source: ${fullSrc}`)
+  }
   lines.push('', '---', '')
   return { filename, content: lines.join('\n') }
 }
