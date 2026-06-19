@@ -84,11 +84,12 @@ function buildFile() {
   if (pub.value.series.trim())  lines.push(`series: ${pub.value.series.trim()}`)
   if (pub.value.source.trim()) {
     const src = pub.value.source.trim()
-    // 全路径直接用，否则拼接 {articleType}/{target}/ 前缀
+    // 全路径直接用，否则拼接 {draftsDir}/{articleType}/{target}/ 前缀
     const effectiveType = isToutiao ? 'long' : pub.value.articleType
+    const draftsDir = storage.getDraftsDir().replace(/\/$/, '')
     const fullSrc = (src.startsWith('/') || src.startsWith('~'))
       ? src
-      : `~/wavesnow/article-drafts/${effectiveType}/${pub.value.target}/${src}`
+      : `${draftsDir}/${effectiveType}/${pub.value.target}/${src}`
     lines.push(`source: ${fullSrc}`)
   }
   lines.push('', '---', '')

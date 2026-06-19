@@ -65,6 +65,13 @@
         </template>
       </div>
 
+      <!-- Step 3: 草稿目录 -->
+      <div v-if="tokenSaved && savedRepo" class="section">
+        <label class="label">草稿目录 <span style="font-size:12px;font-weight:400;color:#888">（article_drafts_dir）</span></label>
+        <input v-model="draftsDir" class="input" placeholder="~/wavesnow/article-drafts" @blur="handleSaveDraftsDir" />
+        <p class="hint">与 ~/.wave-engine/config.yaml 里的 article_drafts_dir 保持一致</p>
+      </div>
+
       <button
         class="start-btn"
         :disabled="!tokenSaved || !savedRepo"
@@ -95,6 +102,7 @@ const searchResults = ref([])
 const searching = ref(false)
 const searchError = ref('')
 const savedRepo = ref(null)
+const draftsDir = ref('')
 
 let searchTimer = null
 
@@ -104,6 +112,7 @@ onMounted(() => {
     token.value = t
     tokenSaved.value = true
   }
+  draftsDir.value = storage.getDraftsDir()
   const r = storage.getRepo()
   if (r) savedRepo.value = r
 })
@@ -159,6 +168,12 @@ function handleSelectRepo(r) {
   storage.setRepo(owner, repo)
   savedRepo.value = { owner, repo }
   searchResults.value = []
+}
+
+function handleSaveDraftsDir() {
+  const dir = draftsDir.value.trim() || '~/wavesnow/article-drafts'
+  draftsDir.value = dir
+  storage.setDraftsDir(dir)
 }
 
 function handleStart() {

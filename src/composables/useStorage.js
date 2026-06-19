@@ -1,6 +1,7 @@
 // src/composables/useStorage.js
-const TOKEN_KEY = 'wavetodo_token'
-const REPO_KEY  = 'wavetodo_repo'
+const TOKEN_KEY      = 'wavetodo_token'
+const REPO_KEY       = 'wavetodo_repo'
+const DRAFTS_DIR_KEY = 'wavetodo_drafts_dir'
 
 export function useStorage() {
   function getToken() {
@@ -31,5 +32,13 @@ export function useStorage() {
     localStorage.setItem(REPO_KEY, JSON.stringify({ owner, repo }))
   }
 
-  return { getToken, setToken, clearToken, getRepo, setRepo }
+  function getDraftsDir() {
+    return localStorage.getItem(DRAFTS_DIR_KEY) || '~/wavesnow/article-drafts'
+  }
+
+  function setDraftsDir(dir) {
+    localStorage.setItem(DRAFTS_DIR_KEY, dir)
+  }
+
+  return { getToken, setToken, clearToken, getRepo, setRepo, getDraftsDir, setDraftsDir }
 }
