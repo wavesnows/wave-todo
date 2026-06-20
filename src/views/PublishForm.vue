@@ -21,12 +21,12 @@
         <div class="radio-group">
           <button :class="['radio-btn', pub.articleType==='mini'&&'active']" @click="pub.articleType='mini'">mini 图文</button>
           <button :class="['radio-btn', pub.articleType==='long'&&'active']" @click="pub.articleType='long'">长文</button>
-          <button :class="['radio-btn', pub.articleType==='novel'&&'active']" @click="pub.articleType='novel'">小说</button>
+          <button v-if="pub.target==='snow'" :class="['radio-btn', pub.articleType==='novel'&&'active']" @click="pub.articleType='novel'">小说</button>
         </div>
       </div>
 
-      <!-- 小说专属字段 -->
-      <template v-if="pub.articleType==='novel' && pub.target !== 'toutiao'">
+      <!-- 小说专属字段（仅 snow） -->
+      <template v-if="pub.articleType==='novel' && pub.target==='snow'">
         <div class="field">
           <label class="field-label">选择小说</label>
           <select v-model="pub.novel" class="text-input">
@@ -40,7 +40,7 @@
       </template>
 
       <!-- 非小说类型显示系列/文件路径 -->
-      <template v-if="pub.articleType!=='novel' && pub.target !== 'toutiao'">
+      <template v-if="pub.articleType!=='novel'">
         <div class="field">
           <label class="field-label">系列 <span class="optional">（可选，不填则随机）</span></label>
           <input v-model="pub.series" class="text-input" placeholder="例：成长的箴言"/>
