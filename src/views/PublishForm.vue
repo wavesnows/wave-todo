@@ -21,18 +21,36 @@
         <div class="radio-group">
           <button :class="['radio-btn', pub.articleType==='mini'&&'active']" @click="pub.articleType='mini'">mini 图文</button>
           <button :class="['radio-btn', pub.articleType==='long'&&'active']" @click="pub.articleType='long'">长文</button>
+          <button :class="['radio-btn', pub.articleType==='novel'&&'active']" @click="pub.articleType='novel'">小说</button>
         </div>
       </div>
 
-      <div class="field">
-        <label class="field-label">系列 <span class="optional">（可选，不填则随机）</span></label>
-        <input v-model="pub.series" class="text-input" placeholder="例：成长的箴言"/>
-      </div>
+      <!-- 小说专属字段 -->
+      <template v-if="pub.articleType==='novel' && pub.target !== 'toutiao'">
+        <div class="field">
+          <label class="field-label">选择小说</label>
+          <select v-model="pub.novel" class="text-input">
+            <option value="AI学走我的代码，学不走我的判断">AI学走我的代码，学不走我的判断</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="field-label">指定章节 <span class="optional">（可选，不填则自动发下一章）</span></label>
+          <input v-model="pub.chapter" class="text-input" placeholder="不填 = 自动顺序发布"/>
+        </div>
+      </template>
 
-      <div class="field">
-        <label class="field-label">指定文件路径 <span class="optional">（可选，不填则随机选一篇）</span></label>
-        <input v-model="pub.source" class="text-input" placeholder="起源/伽利略 或 ~/完整路径"/>
-      </div>
+      <!-- 非小说类型显示系列/文件路径 -->
+      <template v-if="pub.articleType!=='novel' && pub.target !== 'toutiao'">
+        <div class="field">
+          <label class="field-label">系列 <span class="optional">（可选，不填则随机）</span></label>
+          <input v-model="pub.series" class="text-input" placeholder="例：成长的箴言"/>
+        </div>
+
+        <div class="field">
+          <label class="field-label">指定文件路径 <span class="optional">（可选，不填则随机选一篇）</span></label>
+          <input v-model="pub.source" class="text-input" placeholder="起源/伽利略 或 ~/完整路径"/>
+        </div>
+      </template>
 
       <p v-if="error" class="error">{{ error }}</p>
       <p v-if="success" class="success">✅ 任务已提交</p>
@@ -53,7 +71,7 @@ import { useGitHub } from '../composables/useGitHub.js'
 const router = useRouter()
 const storage = useStorage()
 
-const pub = ref({ target: 'once', articleType: 'mini', series: '', source: '' })
+const pub = ref({ target: 'once', articleType: 'mini', series: '', source: '', novel: '', chapter: '' })
 const pubTargets = ['once', 'snow', 'system', 'toutiao']
 const submitting = ref(false)
 const error = ref('')
@@ -72,6 +90,18 @@ function nowStr() {
 function buildFile() {
   const { date, time, created } = nowStr()
   const isToutiao = pub.value.target === 'toutiao'
+  const isNovel = pub.value.articleType === 'novel' && !isToutiao
+
+  // 小说发布 → novel-publish 任务
+  if (isNovel) {
+    const filename = `${date}-${time}.novel-publish.md`
+    const lines = ['---', `created: ${created}`, `target: ${pub.value.target}`, `novel: ${pub.value.novel}`]
+    if (pub.value.chapter.trim()) lines.push(`chapter: ${pub.value.chapter.trim()}`)
+    lines.push('', '---', '')
+    return { filename, content: lines.join('\n') }
+  }
+
+  // 原有 article-publish / article-toutiao-publish 逻辑
   const taskType = isToutiao ? 'article-toutiao-publish' : 'article-publish'
   const filename = `${date}-${time}.${taskType}.md`
   const lines = ['---', `created: ${created}`]
@@ -109,7 +139,7 @@ async function handleSubmit() {
     success.value = true
     setTimeout(() => {
       success.value = false
-      pub.value = { target: 'once', articleType: 'mini', series: '', source: '' }
+      pub.value = { target: 'once', articleType: 'mini', series: '', source: '', novel: '', chapter: '' }
     }, 3000)
   } catch (e) {
     if (e.message === 'UNAUTHORIZED') { storage.clearToken(); router.push('/setup') }
