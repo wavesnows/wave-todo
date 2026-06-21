@@ -106,8 +106,8 @@
           </select>
         </div>
         <div class="field">
-          <label class="field-label">章节号</label>
-          <input v-model.number="nw.chapter" type="number" min="1" class="text-input" placeholder="例：5"/>
+          <label class="field-label">指定章节 <span class="optional">（可选，不填则自动写下一张，指定则重写）</span></label>
+          <input v-model.number="nw.chapter" type="number" min="1" class="text-input" placeholder="不填 = 自动写下一章"/>
         </div>
       </template>
 
@@ -177,7 +177,7 @@ const submitDisabled = computed(() => {
   }
   if (activeTab.value === 'mini')    return !mini.value.series
   if (activeTab.value === 'toutiao') return false
-  if (activeTab.value === 'novel')   return !nw.value.chapter
+  if (activeTab.value === 'novel')   return !nw.value.novel
   return true
 })
 
@@ -253,7 +253,8 @@ function buildFile() {
 
   if (activeTab.value === 'novel') {
     const filename = `${date}-${time}.novel-write.md`
-    const lines = ['---', `created: ${created}`, `novel: ${nw.value.novel}`, `chapter: ${nw.value.chapter}`]
+    const lines = ['---', `created: ${created}`, `novel: ${nw.value.novel}`]
+    if (nw.value.chapter) lines.push(`chapter: ${nw.value.chapter}`)
     lines.push('', '---', '')
     return { filename, content: lines.join('\n') }
   }
