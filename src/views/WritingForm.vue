@@ -97,15 +97,24 @@
         </div>
       </template>
 
-      <!-- 小说（占位） -->
+      <!-- 小说写作 -->
       <template v-if="activeTab==='novel'">
-        <div class="coming-soon">🚧 暂未开放</div>
+        <div class="field">
+          <label class="field-label">选择小说</label>
+          <select v-model="nw.novel" class="text-input">
+            <option value="西游：我看穿了所有大佬的底牌">西游：我看穿了所有大佬的底牌</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="field-label">章节号</label>
+          <input v-model.number="nw.chapter" type="number" min="1" class="text-input" placeholder="例：5"/>
+        </div>
       </template>
 
       <p v-if="error" class="error">{{ error }}</p>
       <p v-if="success" class="success">✅ 任务已提交</p>
 
-      <button v-if="activeTab!=='novel'"
+      <button
         class="submit-btn"
         :disabled="submitDisabled || submitting"
         @click="handleSubmit">
@@ -157,6 +166,9 @@ const miniSeries = [
 // ── 头条 ────────────────────────────────────────────────────
 const tt = ref({ body: '', days: 7 })
 
+// ── 小说写作 ──────────────────────────────────────────────
+const nw = ref({ novel: '西游：我看穿了所有大佬的底牌', chapter: null })
+
 // ── 提交禁用 ─────────────────────────────────────────────────
 const submitDisabled = computed(() => {
   if (activeTab.value === 'rewrite') {
@@ -165,6 +177,7 @@ const submitDisabled = computed(() => {
   }
   if (activeTab.value === 'mini')    return !mini.value.series
   if (activeTab.value === 'toutiao') return false
+  if (activeTab.value === 'novel')   return !nw.value.chapter
   return true
 })
 
@@ -238,6 +251,13 @@ function buildFile() {
     return { filename, content: lines.join('\n') }
   }
 
+  if (activeTab.value === 'novel') {
+    const filename = `${date}-${time}.novel-write.md`
+    const lines = ['---', `created: ${created}`, `novel: ${nw.value.novel}`, `chapter: ${nw.value.chapter}`]
+    lines.push('', '---', '')
+    return { filename, content: lines.join('\n') }
+  }
+
   throw new Error('unknown tab')
 }
 
@@ -263,6 +283,8 @@ async function handleSubmit() {
         mini.value = { series: '起源', entry: '' }
       } else if (activeTab.value === 'toutiao') {
         tt.value = { body: '', days: 7 }
+      } else if (activeTab.value === 'novel') {
+        nw.value = { novel: '西游：我看穿了所有大佬的底牌', chapter: null }
       }
     }, 3000)
   } catch (e) {
