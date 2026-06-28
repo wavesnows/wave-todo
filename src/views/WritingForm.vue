@@ -139,7 +139,7 @@ const error = ref('')
 const success = ref(false)
 
 // ── 改写/创作 ──────────────────────────────────────────────
-const rw = ref({ body: '', target: 'auto', autoPublish: false, withCover: true })
+const rw = ref({ body: '', target: 'auto', autoPublish: false, withCover: false })
 const contentType = ref('create')  // 'url' | 'create' | 'material'
 const materialLib = ref('once_hist')
 const materialTitle = ref('')
@@ -277,7 +277,7 @@ async function handleSubmit() {
     setTimeout(() => {
       success.value = false
       if (activeTab.value === 'rewrite') {
-        rw.value = { body: '', target: 'auto', autoPublish: false, withCover: true }
+        rw.value = { body: '', target: 'auto', autoPublish: false, withCover: false }
         contentType.value = 'create'
         materialTitle.value = ''
       } else if (activeTab.value === 'mini') {
