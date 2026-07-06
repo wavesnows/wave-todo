@@ -69,7 +69,7 @@
       <!-- mini 图文 -->
       <template v-if="activeTab==='mini'">
         <div class="field">
-          <label class="field-label">系列</label>
+          <label class="field-label">系列（once 内容分类）</label>
           <div class="radio-group">
             <button v-for="s in miniSeriesOnce" :key="s.value"
               :class="['radio-btn', mini.series===s.value&&'active']"
@@ -77,12 +77,14 @@
           </div>
         </div>
         <div class="field">
-          <label class="field-label">从长文提取</label>
+          <label class="field-label">从长文提取（snow/system）</label>
           <div class="radio-group">
             <button v-for="s in miniSeriesExtract" :key="s.value"
               :class="['radio-btn', mini.series===s.value&&'active']"
               @click="mini.series=s.value; mini.mode='extract'">{{ s.label }}</button>
           </div>
+          <input v-model="mini.customExtract" class="text-input" placeholder="或输入自定义系列名，如：AI工具、思维模型、管理框架..."
+            @input="if(mini.customExtract) { mini.series=mini.customExtract; mini.mode='extract'; }"/>
         </div>
         <div class="field">
           <label class="field-label">指定条目 <span class="optional">（可选，不填则自动选题）</span></label>
@@ -190,7 +192,7 @@ function detectContentType() {
 }
 
 // ── mini 图文 ──────────────────────────────────────────────
-const mini = ref({ series: '起源', entry: '', mode: 'series' })
+const mini = ref({ series: '起源', entry: '', mode: 'series', customExtract: '' })
 const miniSeriesOnce = [
   { value: '起源',    label: '起源',    account: 'once' },
   { value: '一事一悟', label: '一事一悟', account: 'once' },
