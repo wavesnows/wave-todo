@@ -11,6 +11,7 @@
       <div class="tabs">
         <button :class="['tab', activeTab==='rewrite'&&'active']" @click="activeTab='rewrite'">改写/创作</button>
         <button :class="['tab', activeTab==='mini'&&'active']"    @click="activeTab='mini'">mini 图文</button>
+        <button :class="['tab', activeTab==='diagram'&&'active']" @click="activeTab='diagram'">架构图</button>
         <button :class="['tab', activeTab==='toutiao'&&'active']" @click="activeTab='toutiao'">头条</button>
         <button :class="['tab', activeTab==='novel'&&'active']"   @click="activeTab='novel'">小说</button>
       </div>
@@ -78,6 +79,30 @@
         <div class="field">
           <label class="field-label">指定条目 <span class="optional">（可选，不填则自动选题）</span></label>
           <input v-model="mini.entry" class="text-input" placeholder="例：伽利略"/>
+        </div>
+      </template>
+
+      <!-- 架构图（从长文提取框架生成图表） -->
+      <template v-if="activeTab==='diagram'">
+        <div class="field">
+          <label class="field-label">源文章 <span class="optional">（可选，不填则自动扫描已发布文章）</span></label>
+          <input v-model="dg.source" class="text-input" placeholder="article-wx 下的文章路径"/>
+        </div>
+        <div v-if="!dg.source" class="field">
+          <label class="field-label">扫描最近</label>
+          <div class="radio-group">
+            <button v-for="d in [7,14,30]" :key="d"
+              :class="['radio-btn', dg.days===d&&'active']"
+              @click="dg.days=d">{{ d }}天</button>
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label">目标系列 <span class="optional">（可选，不填则自动路由）</span></label>
+          <div class="radio-group">
+            <button v-for="s in dgSeries" :key="s.value"
+              :class="['radio-btn', dg.series===s.value&&'active']"
+              @click="dg.series=s.value">{{ s.label }}</button>
+          </div>
         </div>
       </template>
 
@@ -163,6 +188,14 @@ const miniSeries = [
   { value: '一事一悟', label: '一事一悟', account: 'once' },
 ]
 
+// ── 架构图 ──────────────────────────────────────────────
+const dg = ref({ source: '', series: '', days: 30 })
+const dgSeries = [
+  { value: '',             label: '自动',   account: 'snow' },
+  { value: 'AI工具速览',   label: 'AI工具速览', account: 'snow' },
+  { value: '思维模型图鉴', label: '思维模型图鉴', account: 'system' },
+]
+
 // ── 头条 ────────────────────────────────────────────────────
 const tt = ref({ body: '', days: 7 })
 
@@ -176,6 +209,7 @@ const submitDisabled = computed(() => {
     return !rw.value.body.trim()
   }
   if (activeTab.value === 'mini')    return !mini.value.series
+  if (activeTab.value === 'diagram') return false  // 总是可用（auto 模式）
   if (activeTab.value === 'toutiao') return false
   if (activeTab.value === 'novel')   return !nw.value.novel
   return true
@@ -230,6 +264,19 @@ function buildFile() {
     const account = seriesCfg ? seriesCfg.account : 'once'
     const lines = ['---', `created: ${created}`, `series: ${mini.value.series}`, `account: ${account}`]
     if (mini.value.entry.trim()) lines.push(`entry: ${mini.value.entry.trim()}`)
+    lines.push('', '---', '')
+    return { filename, content: lines.join('\n') }
+  }
+
+  if (activeTab.value === 'diagram') {
+    const filename = `${date}-${time}.article-diagram.md`
+    const lines = ['---', `created: ${created}`]
+    if (dg.value.source.trim()) lines.push(`source: ${dg.value.source.trim()}`)
+    if (dg.value.series) lines.push(`series: ${dg.value.series}`)
+    if (!dg.value.source.trim()) {
+      lines.push(`auto: true`)
+      lines.push(`days: ${dg.value.days}`)
+    }
     lines.push('', '---', '')
     return { filename, content: lines.join('\n') }
   }
