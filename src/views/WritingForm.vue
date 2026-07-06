@@ -72,22 +72,27 @@
           <div class="radio-group">
             <button v-for="s in miniSeriesOnce" :key="s.value"
               :class="['radio-btn', mini.series===s.value&&'active']"
-              @click="mini.series=s.value; mini.mode='series'">{{ s.label }}</button>
+              @click="mini.series=s.value; mini.account='once'">{{ s.label }}</button>
           </div>
         </div>
         <div class="field">
-          <label class="field-label">从长文提取（snow/system）</label>
+          <label class="field-label">从长文提取</label>
           <div class="radio-group">
-            <button v-for="s in miniSeriesExtract" :key="s.value"
-              :class="['radio-btn', mini.series===s.value&&'active']"
-              @click="mini.series=s.value; mini.mode='extract'">{{ s.label }}</button>
+            <button :class="['radio-btn', mini.series==='auto'&&'active']"
+              @click="mini.series='auto'; mini.account=''">自动</button>
+            <button :class="['radio-btn', mini.series==='AI工具速览'&&'active']"
+              @click="mini.series='AI工具速览'; mini.account='snow'">AI工具速览（snow）</button>
+            <button :class="['radio-btn', mini.series==='思维模型图鉴'&&'active']"
+              @click="mini.series='思维模型图鉴'; mini.account='system'">思维模型图鉴（system）</button>
           </div>
-          <input v-model="mini.customExtract" class="text-input" placeholder="或输入自定义系列名，如：AI工具、思维模型、管理框架..."
-            @input="if(mini.customExtract) { mini.series=mini.customExtract; mini.mode='extract'; }"/>
         </div>
         <div class="field">
-          <label class="field-label">指定条目 <span class="optional">（可选，不填则自动选题）</span></label>
-          <input v-model="mini.entry" class="text-input" placeholder="例：伽利略"/>
+          <label class="field-label">指定条目 <span class="optional">（可选）</span></label>
+          <input v-model="mini.entry" class="text-input" placeholder="条目名，如：伽利略"/>
+        </div>
+        <div class="field">
+          <label class="field-label">或指定 md 文件路径 <span class="optional">（可选，直接用已有文章）</span></label>
+          <input v-model="mini.source" class="text-input" placeholder="article-wx 下的 md 文件路径"/>
         </div>
       </template>
 
@@ -167,14 +172,10 @@ function detectContentType() {
 }
 
 // ── mini 图文 ──────────────────────────────────────────────
-const mini = ref({ series: '起源', entry: '', mode: 'series', customExtract: '' })
+const mini = ref({ series: '起源', entry: '', source: '', account: 'once' })
 const miniSeriesOnce = [
   { value: '起源',    label: '起源',    account: 'once' },
   { value: '一事一悟', label: '一事一悟', account: 'once' },
-]
-const miniSeriesExtract = [
-  { value: 'AI工具速览',   label: 'AI工具速览（从snow长文提取）',   account: 'snow' },
-  { value: '思维模型图鉴', label: '思维模型图鉴（从system长文提取）', account: 'system' },
 ]
 
 // ── 头条 ────────────────────────────────────────────────────
@@ -240,10 +241,10 @@ function buildFile() {
 
   if (activeTab.value === 'mini') {
     const filename = `${date}-${time}.article-mini.md`
-    const seriesCfg = [...miniSeriesOnce, ...miniSeriesExtract].find(s => s.value === mini.value.series)
-    const account = seriesCfg ? seriesCfg.account : 'once'
+    const account = mini.value.account || 'once'
     const lines = ['---', `created: ${created}`, `series: ${mini.value.series}`, `account: ${account}`]
     if (mini.value.entry.trim()) lines.push(`entry: ${mini.value.entry.trim()}`)
+    if (mini.value.source.trim()) lines.push(`source: ${mini.value.source.trim()}`)
     lines.push('', '---', '')
     return { filename, content: lines.join('\n') }
   }
