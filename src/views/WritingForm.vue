@@ -71,9 +71,17 @@
         <div class="field">
           <label class="field-label">系列</label>
           <div class="radio-group">
-            <button v-for="s in miniSeries" :key="s.value"
+            <button v-for="s in miniSeriesOnce" :key="s.value"
               :class="['radio-btn', mini.series===s.value&&'active']"
-              @click="mini.series=s.value">{{ s.label }}</button>
+              @click="mini.series=s.value; mini.mode='series'">{{ s.label }}</button>
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label">从长文提取</label>
+          <div class="radio-group">
+            <button v-for="s in miniSeriesExtract" :key="s.value"
+              :class="['radio-btn', mini.series===s.value&&'active']"
+              @click="mini.series=s.value; mini.mode='extract'">{{ s.label }}</button>
           </div>
         </div>
         <div class="field">
@@ -182,10 +190,14 @@ function detectContentType() {
 }
 
 // ── mini 图文 ──────────────────────────────────────────────
-const mini = ref({ series: '起源', entry: '' })
-const miniSeries = [
+const mini = ref({ series: '起源', entry: '', mode: 'series' })
+const miniSeriesOnce = [
   { value: '起源',    label: '起源',    account: 'once' },
   { value: '一事一悟', label: '一事一悟', account: 'once' },
+]
+const miniSeriesExtract = [
+  { value: 'AI工具速览',   label: 'AI工具速览（从snow长文提取）',   account: 'snow' },
+  { value: '思维模型图鉴', label: '思维模型图鉴（从system长文提取）', account: 'system' },
 ]
 
 // ── 架构图 ──────────────────────────────────────────────
@@ -260,7 +272,7 @@ function buildFile() {
 
   if (activeTab.value === 'mini') {
     const filename = `${date}-${time}.article-mini.md`
-    const seriesCfg = miniSeries.find(s => s.value === mini.value.series)
+    const seriesCfg = [...miniSeriesOnce, ...miniSeriesExtract].find(s => s.value === mini.value.series)
     const account = seriesCfg ? seriesCfg.account : 'once'
     const lines = ['---', `created: ${created}`, `series: ${mini.value.series}`, `account: ${account}`]
     if (mini.value.entry.trim()) lines.push(`entry: ${mini.value.entry.trim()}`)
