@@ -68,9 +68,17 @@
       <!-- mini 图文 -->
       <template v-if="activeTab==='mini'">
         <div class="field">
-          <label class="field-label">系列</label>
+          <label class="field-label">once 系列</label>
           <div class="radio-group">
-            <button v-for="s in miniSeriesAll" :key="s.value"
+            <button v-for="s in miniSeriesOnce" :key="s.value"
+              :class="['radio-btn', mini.series===s.value&&'active']"
+              @click="mini.series=s.value; mini.account=s.account">{{ s.label }}</button>
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label">从长文提取</label>
+          <div class="radio-group">
+            <button v-for="s in miniSeriesExtract" :key="s.value"
               :class="['radio-btn', mini.series===s.value&&'active']"
               @click="mini.series=s.value; mini.account=s.account">{{ s.label }}</button>
           </div>
@@ -162,9 +170,11 @@ function detectContentType() {
 
 // ── mini 图文 ──────────────────────────────────────────────
 const mini = ref({ series: '起源', entry: '', source: '', account: 'once' })
-const miniSeriesAll = [
+const miniSeriesOnce = [
   { value: '起源',    label: '起源',    account: 'once' },
   { value: '一事一悟', label: '一事一悟', account: 'once' },
+]
+const miniSeriesExtract = [
   { value: 'AI工具速览',   label: 'AI工具速览',   account: 'snow' },
   { value: '思维模型图鉴', label: '思维模型图鉴', account: 'system' },
 ]
