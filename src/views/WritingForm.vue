@@ -242,8 +242,7 @@ function buildFile() {
     // once 系列用 article-mini，snow/system 用 article-diagram
     if (series === 'snow' || series === 'system') {
       const filename = `${date}-${time}.article-diagram.md`
-      const seriesName = series === 'snow' ? 'AI工具速览' : '思维模型图鉴'
-      const lines = ['---', `created: ${created}`, `series: ${seriesName}`, 'auto: true', 'days: 30']
+      const lines = ['---', `created: ${created}`, 'auto: true', 'days: 30']
       lines.push('', '---', '')
       return { filename, content: lines.join('\n') }
     } else {
