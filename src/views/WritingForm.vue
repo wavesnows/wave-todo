@@ -238,14 +238,23 @@ function buildFile() {
   }
 
   if (activeTab.value === 'mini') {
-    const filename = `${date}-${time}.article-mini.md`
-    const account = mini.value.account || 'once'
     const series = mini.value.series
-    const lines = ['---', `created: ${created}`, `series: ${series}`, `account: ${account}`]
-    if (mini.value.entry.trim()) lines.push(`entry: ${mini.value.entry.trim()}`)
-    if (mini.value.source.trim()) lines.push(`source: ${mini.value.source.trim()}`)
-    lines.push('', '---', '')
-    return { filename, content: lines.join('\n') }
+    // once 系列用 article-mini，snow/system 用 article-diagram
+    if (series === 'snow' || series === 'system') {
+      const filename = `${date}-${time}.article-diagram.md`
+      const seriesName = series === 'snow' ? 'AI工具速览' : '思维模型图鉴'
+      const lines = ['---', `created: ${created}`, `series: ${seriesName}`, 'auto: true', 'days: 30']
+      lines.push('', '---', '')
+      return { filename, content: lines.join('\n') }
+    } else {
+      const filename = `${date}-${time}.article-mini.md`
+      const account = mini.value.account || 'once'
+      const lines = ['---', `created: ${created}`, `series: ${series}`, `account: ${account}`]
+      if (mini.value.entry.trim()) lines.push(`entry: ${mini.value.entry.trim()}`)
+      if (mini.value.source.trim()) lines.push(`source: ${mini.value.source.trim()}`)
+      lines.push('', '---', '')
+      return { filename, content: lines.join('\n') }
+    }
   }
 
   if (activeTab.value === 'toutiao') {
