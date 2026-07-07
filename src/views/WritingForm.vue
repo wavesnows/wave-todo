@@ -78,9 +78,10 @@
         <div class="field">
           <label class="field-label">从长文提取</label>
           <div class="radio-group">
-            <button v-for="s in miniSeriesExtract" :key="s.value"
-              :class="['radio-btn', mini.series===s.value&&'active']"
-              @click="mini.series=s.value; mini.account=s.account">{{ s.label }}</button>
+            <button :class="['radio-btn', mini.series==='snow'&&'active']"
+              @click="mini.series='snow'; mini.account='snow'">snow 图文</button>
+            <button :class="['radio-btn', mini.series==='system'&&'active']"
+              @click="mini.series='system'; mini.account='system'">system 图文</button>
           </div>
         </div>
         <div class="field">
@@ -174,10 +175,6 @@ const miniSeriesOnce = [
   { value: '起源',    label: '起源',    account: 'once' },
   { value: '一事一悟', label: '一事一悟', account: 'once' },
 ]
-const miniSeriesExtract = [
-  { value: 'AI工具速览',   label: 'AI工具速览',   account: 'snow' },
-  { value: '思维模型图鉴', label: '思维模型图鉴', account: 'system' },
-]
 
 // ── 头条 ────────────────────────────────────────────────────
 const tt = ref({ body: '', days: 7 })
@@ -243,7 +240,8 @@ function buildFile() {
   if (activeTab.value === 'mini') {
     const filename = `${date}-${time}.article-mini.md`
     const account = mini.value.account || 'once'
-    const lines = ['---', `created: ${created}`, `series: ${mini.value.series}`, `account: ${account}`]
+    const series = mini.value.series
+    const lines = ['---', `created: ${created}`, `series: ${series}`, `account: ${account}`]
     if (mini.value.entry.trim()) lines.push(`entry: ${mini.value.entry.trim()}`)
     if (mini.value.source.trim()) lines.push(`source: ${mini.value.source.trim()}`)
     lines.push('', '---', '')
