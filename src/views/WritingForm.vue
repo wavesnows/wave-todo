@@ -35,6 +35,7 @@
             <label class="field-label">系列 <span class="optional">（服务端本地素材库）</span></label>
             <select v-model="materialLib" class="text-input">
               <option value="once_hist">历史故事（once）</option>
+              <option value="flow_earn">赚钱实操（flow）</option>
             </select>
           </div>
           <div class="field">
@@ -82,6 +83,8 @@
               @click="mini.series='snow'; mini.account='snow'">snow 图文</button>
             <button :class="['radio-btn', mini.series==='system'&&'active']"
               @click="mini.series='system'; mini.account='system'">system 图文</button>
+            <button :class="['radio-btn', mini.series==='flow'&&'active']"
+              @click="mini.series='flow'; mini.account='flow'">flow 图文</button>
           </div>
         </div>
         <div class="field">
@@ -162,7 +165,7 @@ function toggleContentType() {
   if (contentType.value === 'url') contentType.value = 'create'
   else if (contentType.value === 'create') contentType.value = 'url'
 }
-const rwTargets = ['auto', 'once', 'snow', 'system']
+const rwTargets = ['auto', 'once', 'snow', 'system', 'flow']
 
 function detectContentType() {
   const firstLine = rw.value.body.split('\n')[0].trim()
@@ -217,6 +220,7 @@ function buildFile() {
       // source_lib 对应 config/series/*.yaml，target 从系列名推断
       const libTargetMap = {
         'once_hist': 'once',
+        'flow_earn': 'flow',
       }
       const libTarget = libTargetMap[materialLib.value] || 'once'
       lines.push(`target: ${libTarget}`)
@@ -239,8 +243,8 @@ function buildFile() {
 
   if (activeTab.value === 'mini') {
     const series = mini.value.series
-    // once 系列用 article-mini，snow/system 用 article-diagram
-    if (series === 'snow' || series === 'system') {
+    // once 系列用 article-mini，snow/system/flow 用 article-diagram
+    if (series === 'snow' || series === 'system' || series === 'flow') {
       const filename = `${date}-${time}.article-diagram.md`
       const days = series === 'snow' ? 60 : 0
       const lines = ['---', `created: ${created}`, `target: ${series}`,

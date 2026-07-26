@@ -72,7 +72,7 @@ const router = useRouter()
 const storage = useStorage()
 
 const pub = ref({ target: 'once', articleType: 'mini', series: '', source: '', novel: '', chapter: '' })
-const pubTargets = ['once', 'snow', 'system', 'toutiao']
+const pubTargets = ['once', 'snow', 'system', 'flow', 'toutiao']
 const submitting = ref(false)
 const error = ref('')
 const success = ref(false)
