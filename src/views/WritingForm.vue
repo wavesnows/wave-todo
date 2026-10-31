@@ -34,8 +34,7 @@
           <div class="field">
             <label class="field-label">系列 <span class="optional">（服务端本地素材库）</span></label>
             <select v-model="materialLib" class="text-input">
-              <option value="once_hist">历史故事（once）</option>
-              <option value="flow_earn">赚钱实操（flow）</option>
+              <option v-for="option in longSeries" :key="option.value" :value="option.value">{{ option.label }}</option>
             </select>
           </div>
           <div class="field">
@@ -89,11 +88,11 @@
         </div>
         <div class="field">
           <label class="field-label">指定条目 <span class="optional">（可选）</span></label>
-          <input v-model="mini.entry" class="text-input" placeholder="条目名，如：伽利略"/>
+          <input :disabled="isDiagram" v-model="mini.entry" class="text-input" placeholder="条目名，如：伽利略"/>
         </div>
         <div class="field">
           <label class="field-label">或指定 md 文件路径 <span class="optional">（可选，直接用已有文章）</span></label>
-          <input v-model="mini.source" class="text-input" placeholder="article-wx 下的 md 文件路径"/>
+          <input :disabled="!isDiagram" v-model="mini.source" class="text-input" placeholder="article-wx 下的 md 文件路径"/>
         </div>
       </template>
 
@@ -141,6 +140,8 @@
 </template>
 
 <script setup>
+import catalog from '../shared/task_catalog.json'
+import {buildTask, newRequestId} from '../shared/task-builder.mjs'
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useStorage } from '../composables/useStorage.js'
@@ -174,10 +175,9 @@ function detectContentType() {
 
 // ── mini 图文 ──────────────────────────────────────────────
 const mini = ref({ series: '起源', entry: '', source: '', account: 'once' })
-const miniSeriesOnce = [
-  { value: '起源',    label: '起源',    account: 'once' },
-  { value: '一事一悟', label: '一事一悟', account: 'once' },
-]
+const isDiagram = computed(() => ['snow','system','flow'].includes(mini.value.series))
+const longSeries = catalog.kinds.long.fields[0].options
+const miniSeriesOnce = catalog.kinds.mini.fields[0].options.filter(o => !o.task_type).map(o => ({value:o.value,label:o.label,account:o.fields.account}))
 
 // ── 头条 ────────────────────────────────────────────────────
 const tt = ref({ body: '', days: 7 })
@@ -215,21 +215,8 @@ function buildFile() {
   if (activeTab.value === 'rewrite') {
     // 素材创作：生成 article-long 任务
     if (contentType.value === 'material') {
-      const filename = `${date}-${time}.article-long.md`
-      const lines = ['---', `created: ${created}`]
-      // source_lib 对应 config/series/*.yaml，target 从系列名推断
-      const libTargetMap = {
-        'once_hist': 'once',
-        'flow_earn': 'flow',
-      }
-      const libTarget = libTargetMap[materialLib.value] || 'once'
-      lines.push(`target: ${libTarget}`)
-      lines.push(`source_lib: ${materialLib.value}`)
-      if (materialTitle.value.trim()) lines.push(`title: ${materialTitle.value.trim()}`)
-      lines.push(`no_publish: ${!rw.value.autoPublish}`)
-      lines.push(`no_cover: ${!rw.value.withCover}`)
-      lines.push('', '---', '')
-      return { filename, content: lines.join('\n') }
+      return buildTask(catalog, 'long', {series:materialLib.value, title:materialTitle.value,
+        with_cover:rw.value.withCover, auto_publish:rw.value.autoPublish}, newRequestId())
     }
     // 普通改写/创作
     const filename = `${date}-${time}.article-rewrite.md`
@@ -242,24 +229,7 @@ function buildFile() {
   }
 
   if (activeTab.value === 'mini') {
-    const series = mini.value.series
-    // once 系列用 article-mini，snow/system/flow 用 article-diagram
-    if (series === 'snow' || series === 'system' || series === 'flow') {
-      const filename = `${date}-${time}.article-diagram.md`
-      const days = series === 'snow' ? 60 : 0
-      const lines = ['---', `created: ${created}`, `target: ${series}`,
-        'auto: true', `days: ${days}`, 'no_publish: true']
-      lines.push('', '---', '')
-      return { filename, content: lines.join('\n') }
-    } else {
-      const filename = `${date}-${time}.article-mini.md`
-      const account = mini.value.account || 'once'
-      const lines = ['---', `created: ${created}`, `series: ${series}`, `account: ${account}`]
-      if (mini.value.entry.trim()) lines.push(`entry: ${mini.value.entry.trim()}`)
-      if (mini.value.source.trim()) lines.push(`source: ${mini.value.source.trim()}`)
-      lines.push('', '---', '')
-      return { filename, content: lines.join('\n') }
-    }
+    return buildTask(catalog, 'mini', {series:mini.value.series, ...(isDiagram.value ? {source:mini.value.source} : {entry:mini.value.entry})}, newRequestId())
   }
 
   if (activeTab.value === 'toutiao') {
@@ -299,8 +269,10 @@ async function handleSubmit() {
   const repo = storage.getRepo()
   try {
     const gh = useGitHub(token)
-    const { filename, content } = buildFile()
-    await gh.putFile(repo.owner, repo.repo, `pending/${filename}`, content, `task: ${filename}`)
+    const task = buildFile()
+    const {filename,content} = task
+    if (task.receipt) await gh.queueTask(repo.owner,repo.repo,task)
+    else await gh.putFile(repo.owner, repo.repo, `pending/${filename}`, content, `task: ${filename}`)
     success.value = true
     setTimeout(() => {
       success.value = false

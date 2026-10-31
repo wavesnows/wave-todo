@@ -63,6 +63,8 @@
 </template>
 
 <script setup>
+import catalog from '../shared/task_catalog.json'
+import {buildTask, newRequestId} from '../shared/task-builder.mjs'
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useStorage } from '../composables/useStorage.js'
@@ -101,7 +103,11 @@ function buildFile() {
     return { filename, content: lines.join('\n') }
   }
 
-  // 原有 article-publish / article-toutiao-publish 逻辑
+  if (!isToutiao) {
+    return buildTask(catalog, 'publish', {target:pub.value.target, article_type:pub.value.articleType,
+      series:pub.value.series, source:pub.value.source}, newRequestId())
+  }
+  // 头条保留原有归档逻辑
   const taskType = isToutiao ? 'article-toutiao-publish' : 'article-publish'
   const filename = `${date}-${time}.${taskType}.md`
   const lines = ['---', `created: ${created}`]
@@ -134,8 +140,10 @@ async function handleSubmit() {
   const repo = storage.getRepo()
   try {
     const gh = useGitHub(token)
-    const { filename, content } = buildFile()
-    await gh.putFile(repo.owner, repo.repo, `pending/${filename}`, content, `task: ${filename}`)
+    const task = buildFile()
+    const {filename,content} = task
+    if (task.receipt) await gh.queueTask(repo.owner,repo.repo,task)
+    else await gh.putFile(repo.owner, repo.repo, `pending/${filename}`, content, `task: ${filename}`)
     success.value = true
     setTimeout(() => {
       success.value = false

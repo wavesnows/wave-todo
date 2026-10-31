@@ -1,0 +1,259 @@
+{
+  "version": 1,
+  "kinds": {
+    "long": {
+      "label": "写长文",
+      "task_type": "article-long",
+      "defaults": {
+        "no_publish": true
+      },
+      "fields": [
+        {
+          "name": "series",
+          "label": "写作系列",
+          "type": "select",
+          "options": [
+            {
+              "value": "book_agents_snow",
+              "label": "深入Agent工程（snow）",
+              "fields": {
+                "source_lib": "book_agents_snow",
+                "target": "snow"
+              }
+            },
+            {
+              "value": "book_agents_system",
+              "label": "深入Agent（system）",
+              "fields": {
+                "source_lib": "book_agents_system",
+                "target": "system"
+              }
+            },
+            {
+              "value": "book_frontier_snow",
+              "label": "微软 Frontier 实战（snow）",
+              "fields": {
+                "source_lib": "book_frontier_snow",
+                "target": "snow"
+              }
+            },
+            {
+              "value": "book_frontier_system",
+              "label": "Frontier Firm 思维（system）",
+              "fields": {
+                "source_lib": "book_frontier_system",
+                "target": "system"
+              }
+            },
+            {
+              "value": "flow_earn",
+              "label": "搞钱实操（flow）",
+              "fields": {
+                "source_lib": "flow_earn",
+                "target": "flow"
+              }
+            },
+            {
+              "value": "once_gushi",
+              "label": "故事（once）",
+              "fields": {
+                "source_lib": "once_gushi",
+                "target": "once"
+              }
+            },
+            {
+              "value": "once_hist",
+              "label": "历史故事（once）",
+              "fields": {
+                "source_lib": "once_hist",
+                "target": "once"
+              }
+            }
+          ]
+        },
+        {
+          "name": "title",
+          "label": "指定标题（可选，留空自动选题）",
+          "type": "text",
+          "output": "title",
+          "max_length": 300
+        },
+        {
+          "name": "entry",
+          "label": "拆书条目号（可选）",
+          "type": "text",
+          "output": "entry",
+          "max_length": 300,
+          "pattern": "^[1-9][0-9]*$"
+        },
+        {
+          "name": "with_cover",
+          "label": "生成封面",
+          "type": "boolean",
+          "default": true,
+          "output": "no_cover",
+          "invert": true
+        },
+        {
+          "name": "auto_publish",
+          "label": "写完自动上传微信草稿箱",
+          "type": "boolean",
+          "default": false,
+          "output": "no_publish",
+          "invert": true
+        }
+      ]
+    },
+    "mini": {
+      "label": "写 mini 图文",
+      "task_type": "article-mini",
+      "defaults": {
+        "no_publish": true
+      },
+      "fields": [
+        {
+          "name": "series",
+          "label": "图文系列",
+          "type": "select",
+          "options": [
+            {
+              "value": "起源",
+              "label": "起源（once）",
+              "fields": {
+                "series": "起源",
+                "account": "once"
+              }
+            },
+            {
+              "value": "一事一悟",
+              "label": "一事一悟（once）",
+              "fields": {
+                "series": "一事一悟",
+                "account": "once"
+              }
+            },
+            {
+              "value": "小知识",
+              "label": "小知识（once）",
+              "fields": {
+                "series": "小知识",
+                "account": "once"
+              }
+            },
+            {
+              "value": "snow",
+              "label": "snow · 从长文提取图文",
+              "task_type": "article-diagram",
+              "fields": {
+                "target": "snow",
+                "auto": true,
+                "days": 60
+              }
+            },
+            {
+              "value": "system",
+              "label": "system · 从长文提取图文",
+              "task_type": "article-diagram",
+              "fields": {
+                "target": "system",
+                "auto": true,
+                "days": 0
+              }
+            },
+            {
+              "value": "flow",
+              "label": "flow · 从长文提取图文",
+              "task_type": "article-diagram",
+              "fields": {
+                "target": "flow",
+                "auto": true,
+                "days": 0
+              }
+            }
+          ]
+        },
+        {
+          "name": "entry",
+          "label": "指定条目（可选）",
+          "type": "text",
+          "output": "entry",
+          "max_length": 300,
+          "task_types": [
+            "article-mini"
+          ]
+        },
+        {
+          "name": "source",
+          "label": "已有文章路径（可选）",
+          "type": "text",
+          "output": "source",
+          "max_length": 300,
+          "task_types": [
+            "article-diagram"
+          ]
+        }
+      ]
+    },
+    "publish": {
+      "label": "上传微信草稿箱",
+      "task_type": "article-publish",
+      "defaults": {},
+      "fields": [
+        {
+          "name": "target",
+          "label": "目标公众号",
+          "type": "select",
+          "output": "target",
+          "options": [
+            {
+              "value": "once",
+              "label": "once"
+            },
+            {
+              "value": "snow",
+              "label": "snow"
+            },
+            {
+              "value": "system",
+              "label": "system"
+            },
+            {
+              "value": "flow",
+              "label": "flow"
+            }
+          ]
+        },
+        {
+          "name": "article_type",
+          "label": "文章类型",
+          "type": "select",
+          "output": "article_type",
+          "options": [
+            {
+              "value": "long",
+              "label": "long"
+            },
+            {
+              "value": "mini",
+              "label": "mini"
+            }
+          ]
+        },
+        {
+          "name": "series",
+          "label": "草稿系列目录（可选）",
+          "type": "text",
+          "output": "series",
+          "max_length": 300
+        },
+        {
+          "name": "source",
+          "label": "草稿路径（可选，留空选最旧的合格草稿）",
+          "type": "text",
+          "output": "source",
+          "max_length": 1000
+        }
+      ]
+    }
+  }
+}

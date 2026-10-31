@@ -1,3 +1,4 @@
+import { submitGitHub } from '../shared/task-builder.mjs'
 // src/composables/useGitHub.js
 const BASE = 'https://api.github.com'
 
@@ -54,5 +55,31 @@ export function useGitHub(token) {
     return await res.json()
   }
 
-  return { validateToken, searchRepos, putFile }
+  async function queueTask(owner, repo, task) {
+    const key = 'wavetodo_pending_submission'
+    const saved = JSON.parse(sessionStorage.getItem(key) || 'null')
+    if (saved) {
+      if (saved.repo !== `${owner}/${repo}` || saved.task.receipt.fingerprint !== task.receipt.fingerprint)
+        throw new Error('有待确认提交，请先使用上方“待确认任务”重试或核查。')
+      task = saved.task
+    }
+    sessionStorage.setItem(key, JSON.stringify({repo:`${owner}/${repo}`,task}))
+    window.dispatchEvent(new Event('wave-pending-changed'))
+    const result = await submitGitHub(async (method, path, body) => {
+      const response = await request(`${BASE}${path}`, {method,
+        ...(body === undefined ? {} : {body:JSON.stringify(body)}),
+        signal:AbortSignal.timeout(15000)})
+      if (!response.ok) {
+        const error = new Error(`队列服务返回 ${response.status}，请用原请求重试`)
+        error.status = response.status
+        throw error
+      }
+      return response.json()
+    }, `${owner}/${repo}`, task)
+    sessionStorage.removeItem(key)
+    window.dispatchEvent(new Event('wave-pending-changed'))
+    return result
+  }
+
+  return { validateToken, searchRepos, putFile, queueTask }
 }
