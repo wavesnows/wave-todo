@@ -35,7 +35,11 @@ export function buildTask(catalog, kind, values, requestId, created = new Date()
     fields[f.output] = value;
   }
   const fingerprint = JSON.stringify({kind, task_type:taskType, fields});
-  const filename = `web-${requestId}.${taskType}.md`;
+  const instant = new Date(created);
+  if (!Number.isFinite(instant.getTime()) || !/(Z|[+-]\d{2}:\d{2})$/.test(created)) throw Error('创建时间必须包含时区');
+  const local = new Date(instant.getTime() + 8*3600*1000).toISOString();
+  const stamp = local.slice(0,10).replaceAll('-','') + '-' + local.slice(11,19).replaceAll(':','');
+  const filename = `${stamp}-web-${requestId.slice(0,8)}.${taskType}.md`;
   const metadata = {...fields, created, submission_id:requestId, submission_source:source};
   const content = '---\n' + Object.entries(metadata).map(([key,value]) => `${key}: ${JSON.stringify(value)}`).join('\n') + '\n---\n';
   return {filename, content, receipt:{request_id:requestId, filename, fingerprint, created}};
@@ -51,7 +55,7 @@ export async function submitGitHub(request, repo, task, branch = 'main') {
     catch (error) { if (error.status === 404) return null; throw error; }
     const bytes = Uint8Array.from(atob(remote.content.replace(/\s/g,'')), c => c.charCodeAt(0));
     const existing = JSON.parse(new TextDecoder().decode(bytes));
-    if (existing.fingerprint !== task.receipt.fingerprint || existing.filename !== task.filename) throw Error('此请求编号已用于不同内容，请新建任务');
+    if (existing.fingerprint !== task.receipt.fingerprint || existing.request_id !== task.receipt.request_id) throw Error('此请求编号已用于不同内容，请新建任务');
     return existing;
   }
   for (let attempt = 0; attempt < 3; attempt++) {
@@ -72,6 +76,10 @@ export async function submitGitHub(request, repo, task, branch = 'main') {
         if (state.lifecycle !== 'active') throw Error('该系列已暂停、完结或归档，不能创建新写作任务');
       }
     }
+    let occupied = false;
+    try { await request('GET', `${base}/contents/pending/${task.filename}?ref=${head}`); occupied = true; }
+    catch (error) { if (error.status !== 404) throw error; }
+    if (occupied) throw Error('任务文件名冲突，请新建请求后重试');
     const baseTree = (await request('GET', `${base}/git/commits/${head}`)).tree.sha;
     const tree = (await request('POST', `${base}/git/trees`, {base_tree:baseTree, tree:[
       {path:`pending/${task.filename}`, mode:'100644', type:'blob', content:task.content},
